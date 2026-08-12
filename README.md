@@ -1,13 +1,15 @@
 # Face Separation
 
 사람 사진에서 얼굴의 눈, 코, 입 영역만 잘라내 각각 이미지 파일로 저장하는 CLI 도구입니다.
-[MediaPipe Face Mesh](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker)로 얼굴 랜드마크를 검출합니다.
+[MediaPipe Face Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker)로 얼굴 랜드마크를 검출합니다.
 
 ## 설치
 
 ```bash
 pip install -r requirements.txt
 ```
+
+처음 실행할 때 얼굴 랜드마크 모델 파일(약 4MB)을 자동으로 다운로드합니다(인터넷 연결 필요, 이후에는 재사용).
 
 ## 사용법
 
