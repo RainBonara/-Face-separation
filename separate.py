@@ -68,18 +68,35 @@ def crop_region(image, landmarks, indices, padding):
     return image[y_min:y_max, x_min:x_max]
 
 
-def process_image(input_path, output_dir, padding, max_faces):
-    image = cv2.imread(input_path)
-    if image is None:
-        raise ValueError(f"Could not read image: {input_path}")
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
+
+def collect_image_paths(inputs):
+    paths = []
+    for path in inputs:
+        if os.path.isdir(path):
+            for name in sorted(os.listdir(path)):
+                if os.path.splitext(name)[1].lower() in IMAGE_EXTENSIONS:
+                    paths.append(os.path.join(path, name))
+        else:
+            paths.append(path)
+    return paths
+
+
+def create_landmarker(max_faces):
     ensure_model()
     options = vision.FaceLandmarkerOptions(
         base_options=BaseOptions(model_asset_path=MODEL_PATH),
         running_mode=vision.RunningMode.IMAGE,
         num_faces=max_faces,
     )
-    landmarker = vision.FaceLandmarker.create_from_options(options)
+    return vision.FaceLandmarker.create_from_options(options)
+
+
+def process_image(input_path, output_dir, padding, landmarker):
+    image = cv2.imread(input_path)
+    if image is None:
+        raise ValueError(f"Could not read image: {input_path}")
 
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     result = landmarker.detect(mp_image)
@@ -108,7 +125,11 @@ def process_image(input_path, output_dir, padding, max_faces):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("input", help="Path to an input face photo")
+    parser.add_argument(
+        "input",
+        nargs="+",
+        help="Path(s) to input face photo(s), and/or folders containing photos",
+    )
     parser.add_argument("-o", "--output", default="output", help="Output directory (default: output)")
     parser.add_argument(
         "--padding",
@@ -120,17 +141,32 @@ def main():
         "--max-faces",
         type=int,
         default=1,
-        help="Maximum number of faces to process in the image (default: 1)",
+        help="Maximum number of faces to process in each image (default: 1)",
     )
     args = parser.parse_args()
 
-    saved = process_image(args.input, args.output, args.padding, args.max_faces)
-    if not saved:
+    image_paths = collect_image_paths(args.input)
+    if not image_paths:
+        print("No image files found for the given input.", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Saved {len(saved)} image(s) to {args.output}:")
-    for path in saved:
-        print(f"  {path}")
+    landmarker = create_landmarker(args.max_faces)
+
+    total_saved = 0
+    for image_path in image_paths:
+        try:
+            saved = process_image(image_path, args.output, args.padding, landmarker)
+        except ValueError as e:
+            print(e, file=sys.stderr)
+            continue
+        if saved:
+            print(f"Saved {len(saved)} image(s) from {image_path}:")
+            for path in saved:
+                print(f"  {path}")
+            total_saved += len(saved)
+
+    if total_saved == 0:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
