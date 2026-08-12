@@ -60,7 +60,7 @@ def imwrite_unicode(path, image):
     return success
 
 
-def crop_region(image, landmarks, indices, padding):
+def compute_bbox(image, landmarks, indices, padding):
     h, w = image.shape[:2]
     xs = [landmarks[i].x * w for i in indices]
     ys = [landmarks[i].y * h for i in indices]
@@ -81,7 +81,28 @@ def crop_region(image, landmarks, indices, padding):
 
     if x_max <= x_min or y_max <= y_min:
         return None
+    return x_min, y_min, x_max, y_max
+
+
+def crop_region(image, bbox):
+    if bbox is None:
+        return None
+    x_min, y_min, x_max, y_max = bbox
     return image[y_min:y_max, x_min:x_max]
+
+
+def build_parts_only_image(image, bboxes):
+    """Original-size RGBA image, transparent except inside the given region boxes."""
+    h, w = image.shape[:2]
+    result = np.zeros((h, w, 4), dtype=np.uint8)
+    for bbox in bboxes:
+        if bbox is None:
+            continue
+        x_min, y_min, x_max, y_max = bbox
+        region = image[y_min:y_max, x_min:x_max]
+        alpha = np.full(region.shape[:2] + (1,), 255, dtype=np.uint8)
+        result[y_min:y_max, x_min:x_max] = np.concatenate([region, alpha], axis=2)
+    return result
 
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -128,13 +149,23 @@ def process_image(input_path, output_dir, padding, landmarker):
     for face_idx, landmarks in enumerate(result.face_landmarks):
         suffix = f"_face{face_idx}" if len(result.face_landmarks) > 1 else ""
 
-        for region_name, indices in REGIONS.items():
-            crop = crop_region(image, landmarks, indices, padding)
+        bboxes = {
+            region_name: compute_bbox(image, landmarks, indices, padding)
+            for region_name, indices in REGIONS.items()
+        }
+
+        for region_name, bbox in bboxes.items():
+            crop = crop_region(image, bbox)
             if crop is None:
                 continue
             out_path = os.path.join(output_dir, f"{base_name}{suffix}_{region_name}.png")
             imwrite_unicode(out_path, crop)
             saved_paths.append(out_path)
+
+        parts_only = build_parts_only_image(image, bboxes.values())
+        out_path = os.path.join(output_dir, f"{base_name}{suffix}_parts_only.png")
+        imwrite_unicode(out_path, parts_only)
+        saved_paths.append(out_path)
 
     return saved_paths
 
