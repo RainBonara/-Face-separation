@@ -1,2 +1,33 @@
-# -Face-separation
-사람얼굴을 눈, 코, 입으로 분리한 후 이미지로 저장하는 시스템
+# Face Separation
+
+사람 사진에서 얼굴의 눈, 코, 입 영역만 잘라내 각각 이미지 파일로 저장하는 CLI 도구입니다.
+[MediaPipe Face Mesh](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker)로 얼굴 랜드마크를 검출합니다.
+
+## 설치
+
+```bash
+pip install -r requirements.txt
+```
+
+## 사용법
+
+```bash
+python separate.py 사진.jpg
+```
+
+기본적으로 `output/` 폴더에 다음 파일들이 생성됩니다:
+
+- `사진_left_eye.png`
+- `사진_right_eye.png`
+- `사진_nose.png`
+- `사진_mouth.png`
+
+### 옵션
+
+```bash
+python separate.py 사진.jpg -o 결과폴더 --padding 0.3 --max-faces 3
+```
+
+- `-o, --output`: 출력 폴더 (기본값: `output`)
+- `--padding`: 잘라낼 영역 주변에 추가할 여백 비율 (기본값: `0.3`)
+- `--max-faces`: 한 이미지에서 처리할 최대 얼굴 수 (기본값: `1`). 2 이상이면 파일명에 `_face0`, `_face1` 등이 붙습니다.
