@@ -24,6 +24,20 @@ python separate.py 사진.jpg
 - `사진_nose.png`
 - `사진_mouth.png`
 
+### 여러 장 한번에 처리하기
+
+파일을 여러 개 나열하거나, 사진들이 들어있는 폴더를 통째로 넘길 수 있습니다.
+
+```bash
+# 파일 여러 개
+python separate.py 사진1.jpg 사진2.jpg 사진3.jpg
+
+# 폴더 전체 (jpg, jpeg, png, bmp, webp 파일을 모두 찾아 처리)
+python separate.py 사진폴더/
+```
+
+얼굴이 없는 사진은 건너뛰고 나머지는 계속 처리합니다.
+
 ### 옵션
 
 ```bash
