@@ -4,23 +4,44 @@
 import argparse
 import os
 import sys
+import urllib.request
 
 import cv2
 import numpy as np
 import mediapipe as mp
+from mediapipe.tasks.python import BaseOptions
+from mediapipe.tasks.python import vision
 
-mp_face_mesh = mp.solutions.face_mesh
+MODEL_URL = (
+    "https://storage.googleapis.com/mediapipe-models/face_landmarker/"
+    "face_landmarker/float16/latest/face_landmarker.task"
+)
+MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "face_landmarker.task")
 
 # Nose landmarks aren't grouped by mediapipe like eyes/lips are, so we
 # hand-pick points spanning the bridge, tip, and both alae/nostrils.
 NOSE_INDICES = [5, 4, 1, 19, 94, 2, 129, 358, 48, 278]
 
+FLC = vision.FaceLandmarksConnections
+
+
+def _connection_indices(connections):
+    return {i for c in connections for i in (c.start, c.end)}
+
+
 REGIONS = {
-    "left_eye": lambda mesh: {i for pair in mesh.FACEMESH_LEFT_EYE for i in pair},
-    "right_eye": lambda mesh: {i for pair in mesh.FACEMESH_RIGHT_EYE for i in pair},
-    "nose": lambda mesh: set(NOSE_INDICES),
-    "mouth": lambda mesh: {i for pair in mesh.FACEMESH_LIPS for i in pair},
+    "left_eye": _connection_indices(FLC.FACE_LANDMARKS_LEFT_EYE),
+    "right_eye": _connection_indices(FLC.FACE_LANDMARKS_RIGHT_EYE),
+    "nose": set(NOSE_INDICES),
+    "mouth": _connection_indices(FLC.FACE_LANDMARKS_LIPS),
 }
+
+
+def ensure_model():
+    if os.path.exists(MODEL_PATH):
+        return
+    print("Downloading face landmark model (one-time, ~4MB)...", file=sys.stderr)
+    urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
 
 
 def crop_region(image, landmarks, indices, padding):
@@ -52,15 +73,18 @@ def process_image(input_path, output_dir, padding, max_faces):
     if image is None:
         raise ValueError(f"Could not read image: {input_path}")
 
-    with mp_face_mesh.FaceMesh(
-        static_image_mode=True,
-        max_num_faces=max_faces,
-        refine_landmarks=True,
-        min_detection_confidence=0.5,
-    ) as face_mesh:
-        results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    ensure_model()
+    options = vision.FaceLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path=MODEL_PATH),
+        running_mode=vision.RunningMode.IMAGE,
+        num_faces=max_faces,
+    )
+    landmarker = vision.FaceLandmarker.create_from_options(options)
 
-    if not results.multi_face_landmarks:
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    result = landmarker.detect(mp_image)
+
+    if not result.face_landmarks:
         print(f"No face detected in {input_path}", file=sys.stderr)
         return []
 
@@ -68,12 +92,10 @@ def process_image(input_path, output_dir, padding, max_faces):
     os.makedirs(output_dir, exist_ok=True)
 
     saved_paths = []
-    for face_idx, face_landmarks in enumerate(results.multi_face_landmarks):
-        landmarks = face_landmarks.landmark
-        suffix = f"_face{face_idx}" if len(results.multi_face_landmarks) > 1 else ""
+    for face_idx, landmarks in enumerate(result.face_landmarks):
+        suffix = f"_face{face_idx}" if len(result.face_landmarks) > 1 else ""
 
-        for region_name, index_fn in REGIONS.items():
-            indices = index_fn(mp_face_mesh)
+        for region_name, indices in REGIONS.items():
             crop = crop_region(image, landmarks, indices, padding)
             if crop is None:
                 continue
