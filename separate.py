@@ -44,6 +44,22 @@ def ensure_model():
     urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
 
 
+def imread_unicode(path):
+    # cv2.imread() can't open paths containing non-ASCII characters (e.g. Korean)
+    # on Windows, since it opens the file using the system's active code page.
+    data = np.fromfile(path, dtype=np.uint8)
+    return cv2.imdecode(data, cv2.IMREAD_COLOR)
+
+
+def imwrite_unicode(path, image):
+    # Same limitation as imread_unicode, but for writing.
+    ext = os.path.splitext(path)[1]
+    success, buf = cv2.imencode(ext, image)
+    if success:
+        buf.tofile(path)
+    return success
+
+
 def crop_region(image, landmarks, indices, padding):
     h, w = image.shape[:2]
     xs = [landmarks[i].x * w for i in indices]
@@ -94,7 +110,7 @@ def create_landmarker(max_faces):
 
 
 def process_image(input_path, output_dir, padding, landmarker):
-    image = cv2.imread(input_path)
+    image = imread_unicode(input_path)
     if image is None:
         raise ValueError(f"Could not read image: {input_path}")
 
@@ -117,7 +133,7 @@ def process_image(input_path, output_dir, padding, landmarker):
             if crop is None:
                 continue
             out_path = os.path.join(output_dir, f"{base_name}{suffix}_{region_name}.png")
-            cv2.imwrite(out_path, crop)
+            imwrite_unicode(out_path, crop)
             saved_paths.append(out_path)
 
     return saved_paths
