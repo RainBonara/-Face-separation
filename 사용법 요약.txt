@@ -1,0 +1,6 @@
+1. 사진들이 들어있는 폴더 또는 파일 준비
+
+2. cmd에 들어가기
+3. cd C:\-Face-separation-main   (경로 설정, 한번만 하면 됨)
+4_1. py separate.py 파일명 (사진 한장)
+4_2. py separate.py 폴더명 (사진 여러장)

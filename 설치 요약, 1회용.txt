@@ -1,0 +1,10 @@
+1. 준비물 다운받기
+1_1. 파이썬 다운로드 (이미 있으면 건너띄기)
+      설치할 때 "Add python.exe to PATH" 체크박스 꼭 체크!
+1_2. https://github.com/RainBonara/-Face-separation에서 zip 다운로드
+1_3. c드라이브 최상단에 압축풀기
+
+
+2. 명령 프롬프트 (cmd)에서
+2_1. cd C:\-Face-separation-main (경로 설정)
+2_2. pip install -r requirements.txt
