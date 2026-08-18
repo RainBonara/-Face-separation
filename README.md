@@ -49,3 +49,12 @@ python separate.py 사진.jpg -o 결과폴더 --padding 0.3 --max-faces 3
 - `-o, --output`: 출력 폴더 (기본값: `output`)
 - `--padding`: 잘라낼 영역 주변에 추가할 여백 비율 (기본값: `0.3`)
 - `--max-faces`: 한 이미지에서 처리할 최대 얼굴 수 (기본값: `1`). 2 이상이면 파일명에 `_face0`, `_face1` 등이 붙습니다.
+
+## 파일 구성
+
+- `separate.py`: 실행 진입점 (CLI 옵션 처리, 전체 흐름 조립)
+- `model.py`: 얼굴 랜드마크 모델 다운로드 및 로드
+- `io_utils.py`: 한글 등 비ASCII 경로를 포함한 이미지 읽기/쓰기
+- `regions.py`: 눈/코/입 랜드마크 정의 및 잘라낼 영역 계산
+- `compose.py`: 투명 배경 이미지, 콜라주 이미지 합성
+- `batch.py`: 입력받은 파일/폴더 목록을 처리할 이미지 경로 목록으로 변환
