@@ -23,6 +23,8 @@ python separate.py 사진.jpg
 - `사진_right_eye.png`
 - `사진_nose.png`
 - `사진_mouth.png`
+- `사진_parts_only.png`: 원본 크기 그대로, 눈·코·입 부분만 남기고 나머지는 투명 처리된 PNG
+- `사진_collage.png`: 양쪽 눈을 위쪽에 나란히, 코를 그 아래, 입을 가장 아래에 배치해 하나로 모은 이미지
 
 ### 여러 장 한번에 처리하기
 
